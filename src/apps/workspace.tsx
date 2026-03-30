@@ -75,7 +75,11 @@ function App() {
   const [sendText, setSendText] = useState("");
   const [sendResult, setSendResult] = useState("");
   const [filterNode, setFilterNode] = useState<string | null>(null);
+  const [feedMode, setFeedMode] = useState<"important" | "all">("important");
   const [now, setNow] = useState(Date.now());
+
+  // Important events only — skip noisy Pre/PostToolUse
+  const IMPORTANT_EVENTS = new Set(["UserPromptSubmit", "Stop", "Notification", "SessionStart", "SessionEnd", "SubagentStart", "SubagentStop"]);
 
   // Tick for relative times
   useEffect(() => {
@@ -89,7 +93,7 @@ function App() {
       onDisconnect: () => setConnected(false),
       onFeed: (oracle, event) => {
         setMsgCount(n => n + 1);
-        setFeed(prev => [...prev.slice(-299), { ...event, _node: event.host }]);
+        setFeed(prev => [...prev.slice(-149), { ...event, _node: event.host }]);
       },
       onStatus: (oracle, status) => {
         setMsgCount(n => n + 1);
@@ -133,9 +137,11 @@ function App() {
     return list;
   }, [nodes, statuses]);
 
-  const filteredFeed = filterNode
-    ? feed.filter(e => e.host === filterNode || e._node === filterNode)
-    : feed;
+  const filteredFeed = feed.filter(e => {
+    if (filterNode && e.host !== filterNode && e._node !== filterNode) return false;
+    if (feedMode === "important" && !IMPORTANT_EVENTS.has(e.event)) return false;
+    return true;
+  });
 
   const busyCount = allAgents.filter(a => a.status === "busy").length;
   const readyCount = allAgents.filter(a => a.status === "ready").length;
@@ -275,6 +281,15 @@ function App() {
 
         {/* CENTER: Feed */}
         <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Feed header */}
+          <div className="flex items-center gap-2 px-3 py-1.5 border-b" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+            <span className="text-[9px] font-mono text-white/20">{filteredFeed.length} events</span>
+            <button onClick={() => setFeedMode(feedMode === "important" ? "all" : "important")}
+              className="text-[9px] font-mono px-2 py-0.5 rounded-full ml-auto transition-all"
+              style={{ background: feedMode === "important" ? "rgba(168,85,247,0.15)" : "rgba(255,255,255,0.06)", color: feedMode === "important" ? "#a78bfa" : "#666" }}>
+              {feedMode === "important" ? "Important" : "All events"}
+            </button>
+          </div>
           {/* Feed */}
           <div ref={feedRef} className="flex-1 overflow-y-auto font-mono text-[10px]">
             {filteredFeed.map((e, i) => (

@@ -52,15 +52,17 @@ export function useSessions() {
   const FEED_BUSY_EVENTS = new Set<FeedEventType>(["PreToolUse", "PostToolUse", "UserPromptSubmit", "SubagentStart", "PostToolUseFailure"]);
   const FEED_STOP_EVENTS = new Set<FeedEventType>(["Stop", "SessionEnd", "TaskCompleted", "Notification"]);
 
-  /** Resolve feed event → agent. Uses project field for worktree-aware matching (case-insensitive). */
+  /** Resolve feed event → agent. Uses project field for worktree-aware matching (case-insensitive).
+   *  KEY: worktree events NEVER fall back to main oracle window — prevents cross-contamination. */
   const resolveAgentFromFeed = useCallback((event: FeedEvent): AgentState | undefined => {
     const project = event.project;
     const wtMatch = project.match(/[.-]wt-(?:\d+-)?(.+)$/);
     if (wtMatch) {
       const windowName = `${event.oracle}-${wtMatch[1]}`.toLowerCase();
-      const agent = agentsRef.current.find(a => a.name.toLowerCase() === windowName);
-      if (agent) return agent;
+      // If worktree event but no matching window, return undefined — do NOT fall back to main
+      return agentsRef.current.find(a => a.name.toLowerCase() === windowName);
     }
+    // Only non-worktree events match by oracle name (main window)
     const oracleLower = event.oracle.toLowerCase();
     const oracleMain = oracleLower.endsWith("-oracle") ? oracleLower : `${oracleLower}-oracle`;
     return agentsRef.current.find(a => a.name.toLowerCase() === oracleMain)

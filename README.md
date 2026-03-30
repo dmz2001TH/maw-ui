@@ -25,7 +25,7 @@ bun run build      # Production build → dist/
 
 ```sh
 bun run build
-cp -r dist/* /path/to/maw-js/dist-office/
+cp -r dist/* /path/to/maw-js/ui/office/
 ```
 
 ## Architecture

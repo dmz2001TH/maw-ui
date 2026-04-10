@@ -29,6 +29,7 @@ export default defineConfig({
         inbox: resolve(__dirname, "inbox.html"),
         arena: resolve(__dirname, "arena.html"),
         federation: resolve(__dirname, "federation.html"),
+        federation_2d: resolve(__dirname, "federation_2d.html"),
         talk: resolve(__dirname, "talk.html"),
         timemachine: resolve(__dirname, "timemachine.html"),
         shrine: resolve(__dirname, "shrine.html"),

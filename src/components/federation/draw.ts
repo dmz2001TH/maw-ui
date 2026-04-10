@@ -120,8 +120,10 @@ export function drawEdges(
       }
     }
 
-    // Particles
-    if (edge.type === "message" || (edge.type === "sync" && isHighlighted)) {
+    // Particles — only on edges with active pulse or sync when highlighted
+    const edgeKey = edge.type === "message" ? [edge.source, edge.target].sort().join("-") : "";
+    const hasActivePulse = edgeKey && edgePulses?.[edgeKey] && (Date.now() - edgePulses[edgeKey]) < 3000;
+    if ((edge.type === "message" && hasActivePulse) || (edge.type === "sync" && isHighlighted)) {
       const key = `${edge.source}-${edge.target}`;
       const pts = particles.get(key);
       if (pts) {

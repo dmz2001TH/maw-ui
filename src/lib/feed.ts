@@ -17,7 +17,11 @@ export type FeedEventType =
   | "SessionEnd"
   | "SessionStart"
   | "Stop"
-  | "Notification";
+  | "Notification"
+  | "PluginHook"
+  | "PluginFilter"
+  | "PluginLoad"
+  | "PluginError";
 
 export interface FeedEvent {
   timestamp: string;
@@ -141,6 +145,14 @@ export function describeActivity(event: FeedEvent): string {
     }
     case "Notification":
       return `🔔 ${event.message || "Notification"}`;
+    case "PluginHook":
+      return `⚡ Plugin: ${event.message || "hook fired"}`;
+    case "PluginFilter":
+      return `🔀 Filter: ${event.message || "event transformed"}`;
+    case "PluginLoad":
+      return `🧩 Plugin loaded: ${event.message || ""}`;
+    case "PluginError":
+      return `💥 Plugin error: ${event.message || ""}`;
     default:
       return event.message || event.event;
   }

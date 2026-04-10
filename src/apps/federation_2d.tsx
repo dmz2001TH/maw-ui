@@ -157,7 +157,7 @@ function App() {
   const flashRef = useRef(flashes); flashRef.current = flashes;
 
   // WS
-  const BUSY = useMemo(() => new Set<FeedEventType>(["PreToolUse", "PostToolUse", "UserPromptSubmit", "SubagentStart", "PostToolUseFailure"]), []);
+  const BUSY = useMemo(() => new Set<FeedEventType>(["PreToolUse", "PostToolUse", "UserPromptSubmit", "SubagentStart", "PostToolUseFailure", "PluginHook", "PluginFilter", "PluginLoad"]), []);
   const STOP = useMemo(() => new Set<FeedEventType>(["Stop", "SessionEnd", "Notification"]), []);
 
   const handleMessage = useCallback((data: any) => {

@@ -347,7 +347,7 @@ function App() {
     if (!mesh) return;
     const pos = mesh.position.clone();
     const agent = agentsRef.current.find(a => a.id === agentId);
-    const color = agent ? machineHex(agent.node) : 0x67e8f9;
+    const color = agent ? machineHex(agent.node) : 0x00f5d4;
 
     // Big burst on activity
     if (eventType === "UserPromptSubmit") {
@@ -368,6 +368,25 @@ function App() {
       spawnBurst(pos, 0xff3333, 50); // red burst on failure
     }
 
+    // Plugin events — nervous system lighting up
+    if (eventType === "PluginHook") {
+      spawnBurst(pos, 0x00f5d4, 40); // bioluminescent pulse
+      // Beam to all sync peers — hook ripples through the mesh
+      if (agent?.syncPeers.length) {
+        for (const peer of agent.syncPeers) {
+          const peerMesh = s.agentMeshes.get(peer);
+          if (peerMesh && Math.random() < 0.5) spawnBeam(pos, peerMesh.position.clone(), 0x00f5d4);
+        }
+      }
+    } else if (eventType === "PluginFilter") {
+      spawnBurst(pos, 0x9b5de5, 35); // purple filter ripple
+    } else if (eventType === "PluginLoad") {
+      spawnBurst(pos, 0x00bbf9, 60); // big blue burst — new plugin alive
+      spawnSupernova(pos, 0x00bbf9);
+    } else if (eventType === "PluginError") {
+      spawnBurst(pos, 0xff3333, 45); // red error flash
+    }
+
     // Beam to a connected agent on tool use (if edges exist)
     if (eventType === "PreToolUse" && agent) {
       const msgEdges = edgesRef.current.filter(e =>
@@ -378,14 +397,14 @@ function App() {
         const peer = e.source === agentId ? e.target : e.source;
         const peerMesh = s.agentMeshes.get(peer);
         if (peerMesh && Math.random() < 0.3) { // 30% chance to avoid spam
-          spawnBeam(pos, peerMesh.position.clone(), 0x67e8f9);
+          spawnBeam(pos, peerMesh.position.clone(), 0x00f5d4);
         }
       }
     }
   }, [spawnBurst, spawnBeam, spawnSupernova]);
 
   // WS
-  const BUSY = useMemo(() => new Set<FeedEventType>(["PreToolUse", "PostToolUse", "UserPromptSubmit", "SubagentStart", "PostToolUseFailure"]), []);
+  const BUSY = useMemo(() => new Set<FeedEventType>(["PreToolUse", "PostToolUse", "UserPromptSubmit", "SubagentStart", "PostToolUseFailure", "PluginHook", "PluginFilter", "PluginLoad"]), []);
   const STOP = useMemo(() => new Set<FeedEventType>(["Stop", "SessionEnd", "Notification"]), []);
 
   const handleMessage = useCallback((data: any) => {
@@ -816,7 +835,7 @@ function App() {
 
       let color: number, opacity: number;
       if (edge.type === "message") {
-        color = 0x67e8f9; opacity = 0.4;
+        color = 0x00f5d4; opacity = 0.4;
       } else if (edge.type === "lineage") {
         color = 0xfbbf24; opacity = 0.2;
       } else {
@@ -856,7 +875,7 @@ function App() {
       pGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
       const pMat = new THREE.PointsMaterial({
         size: 0.06,
-        color: 0x67e8f9,
+        color: 0x00f5d4,
         transparent: true,
         opacity: 0.8,
         blending: THREE.AdditiveBlending,

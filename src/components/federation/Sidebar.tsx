@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useFederationStore } from "./store";
 import { machineColor, statusGlow } from "./colors";
 
@@ -17,6 +17,15 @@ type Tab = "agents" | "messages";
 export function Sidebar() {
   const { agents, edges, machines, statuses, selected, setSelected, liveMessages, messageLog } = useFederationStore();
   const [tab, setTab] = useState<Tab>("agents");
+  const prevLiveCount = useRef(liveMessages.length);
+
+  // Auto-switch to messages tab when new live message arrives
+  useEffect(() => {
+    if (liveMessages.length > prevLiveCount.current) {
+      setTab("messages");
+    }
+    prevLiveCount.current = liveMessages.length;
+  }, [liveMessages.length]);
 
   const selAgent = agents.find(a => a.id === selected);
   const selEdges = edges.filter(e => e.source === selected || e.target === selected);

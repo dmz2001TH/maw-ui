@@ -95,11 +95,16 @@ export const useFederationStore = create<FederationStore>((set) => ({
     const now = Date.now();
     const key = [from, to].sort().join("-");
     const msg: LiveMessage = { from, to, ts: now };
-    // Keep last 50 live messages
     const msgs = [...s.liveMessages, msg].slice(-50);
-    // Pulse both agents + the edge
+
+    // If no edge exists between from/to, create a temporary message edge
+    const hasEdge = s.edges.some(e =>
+      (e.source === from && e.target === to) || (e.source === to && e.target === from));
+    const edges = hasEdge ? s.edges : [...s.edges, { source: from, target: to, type: "message" as const, count: 1 }];
+
     return {
       liveMessages: msgs,
+      edges,
       edgePulses: { ...s.edgePulses, [key]: now },
       flashes: { ...s.flashes, [from]: now, [to]: now },
     };

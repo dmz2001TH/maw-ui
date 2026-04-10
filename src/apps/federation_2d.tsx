@@ -70,7 +70,7 @@ function App() {
         <button onClick={reformat}
           className="absolute bottom-4 left-4 px-3 py-2 rounded-lg border text-[10px] font-mono cursor-pointer hover:bg-white/[0.05] transition-colors"
           style={{ background: "rgba(3,10,24,0.9)", borderColor: "rgba(255,255,255,0.08)", color: "rgba(0,245,212,0.5)" }}>
-          {layout === "force" ? "\u26A1" : "\u2B55"} {layout}
+{"\u21BB"} reset
         </button>
         <Sidebar />
       </div>

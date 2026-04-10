@@ -66,10 +66,6 @@ export function Sidebar() {
           /* Messages tab */
           allMessages.length > 0 ? (
             <div className="space-y-0">
-              <button onClick={clearMessages}
-                className="text-[8px] font-mono text-white/20 hover:text-white/40 cursor-pointer mb-1">
-                clear &middot; wait for realtime
-              </button>
               {allMessages.map((m, i) => {
                 const isUser = m.from === "user";
                 const fromColor = isUser ? "#fee440" : machineColor(agentMachine.get(m.from) || "");

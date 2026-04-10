@@ -11,8 +11,7 @@ const LAYOUTS = ["force", "circle"] as const;
 
 function App() {
   const { connected, mqttConnected } = useFederationData();
-  const store = useFederationStore();
-  const { machines, agents, edges, version, plugins, showLineage, toggleLineage, layout, setLayout, setGraph, particles, showHistoryEdges } = store;
+  const { machines, agents, edges, version, plugins, showLineage, toggleLineage, layout, setLayout, setGraph, particles, showHistoryEdges } = useFederationStore();
 
   const reformat = () => {
     const nextIdx = (LAYOUTS.indexOf(layout as any) + 1) % LAYOUTS.length;
@@ -49,7 +48,7 @@ function App() {
           <span>&middot;</span>
           <span>{totalAgents} agents</span>
           <span>&middot;</span>
-          <button onClick={() => store.setState({ showHistoryEdges: !showHistoryEdges })} className={`cursor-pointer hover:text-cyan-400/60 ${showHistoryEdges ? "text-white/20" : "text-white/15 line-through"}`}>{msgCount} msg</button>
+          <button onClick={() => useFederationStore.setState({ showHistoryEdges: !showHistoryEdges })} className={`cursor-pointer hover:text-cyan-400/60 ${showHistoryEdges ? "text-white/20" : "text-white/15 line-through"}`}>{msgCount} msg</button>
           <span>&middot;</span>
           <span>{syncCount} sync</span>
           <span>&middot;</span>
@@ -74,7 +73,7 @@ function App() {
             style={{ background: "rgba(3,10,24,0.9)", borderColor: "rgba(255,255,255,0.08)", color: "rgba(0,245,212,0.5)" }}>
             {layout === "force" ? "\u26A1" : "\u2B55"} {layout}
           </button>
-          <button onClick={() => store.setState({ showHistoryEdges: !showHistoryEdges })}
+          <button onClick={() => useFederationStore.setState({ showHistoryEdges: !showHistoryEdges })}
             className="px-3 py-2 rounded-lg border text-[10px] font-mono cursor-pointer hover:bg-white/[0.05] transition-colors"
             style={{ background: "rgba(3,10,24,0.9)", borderColor: "rgba(255,255,255,0.08)", color: showHistoryEdges ? "rgba(0,245,212,0.5)" : "rgba(255,255,255,0.2)" }}>
             {showHistoryEdges ? "\u2501 lines" : "\u2501 realtime"}

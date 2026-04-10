@@ -3,6 +3,14 @@ import type { AgentNode, AgentEdge, Particle, LiveMessage } from "./types";
 import type { FeedEvent } from "../../lib/feed";
 import { BUSY_EVENTS, STOP_EVENTS } from "./types";
 
+export interface MessageEntry {
+  from: string;
+  to: string;
+  msg: string;
+  ts: number;
+  live?: boolean;
+}
+
 export interface PluginInfo {
   name: string;
   type: string;
@@ -24,6 +32,7 @@ interface FederationStore {
   particles: Map<string, Particle[]>;
   plugins: PluginInfo[];
   liveMessages: LiveMessage[];
+  messageLog: MessageEntry[];
   edgePulses: Record<string, number>; // edge key -> timestamp of last pulse
   showLineage: boolean;
 
@@ -32,6 +41,7 @@ interface FederationStore {
   setSelected: (id: string | null) => void;
   setHovered: (id: string | null) => void;
   setPlugins: (plugins: PluginInfo[]) => void;
+  setMessageLog: (messages: MessageEntry[]) => void;
   toggleLineage: () => void;
   handleFeedEvent: (e: FeedEvent) => void;
   handleFeedHistory: (events: FeedEvent[]) => void;
@@ -50,6 +60,7 @@ export const useFederationStore = create<FederationStore>((set) => ({
   particles: new Map(),
   plugins: [],
   liveMessages: [],
+  messageLog: [],
   edgePulses: {},
   showLineage: false,
 
@@ -67,6 +78,7 @@ export const useFederationStore = create<FederationStore>((set) => ({
   setHovered: (id) => set({ hovered: id }),
 
   setPlugins: (plugins) => set({ plugins }),
+  setMessageLog: (messages) => set({ messageLog: messages }),
   toggleLineage: () => set((s) => ({ showLineage: !s.showLineage })),
 
   handleFeedEvent: (e) => set((s) => {

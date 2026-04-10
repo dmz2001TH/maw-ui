@@ -4,8 +4,21 @@ import { useFederationStore } from "./store";
 const clean = (s: string) => s.replace(/-view$/, "").replace(/-oracle$/, "");
 
 export function PluginPanel() {
-  const { liveMessages } = useFederationStore();
+  const { liveMessages, messageLog } = useFederationStore();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Merge live + history, deduplicate, sort newest first
+  const allMessages = [...liveMessages.map(m => ({
+    from: clean(m.from),
+    to: clean(m.to),
+    msg: "",
+    ts: m.ts,
+    live: true,
+  })), ...messageLog.filter(m => {
+    // Skip history entries that overlap with live
+    return !liveMessages.some(l =>
+      clean(l.from) === m.from && clean(l.to) === m.to && Math.abs(l.ts - m.ts) < 5000);
+  })].sort((a, b) => b.ts - a.ts);
 
   if (collapsed) {
     return (
@@ -15,7 +28,7 @@ export function PluginPanel() {
         {liveMessages.length > 0
           ? <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
           : <span className="w-1.5 h-1.5 rounded-full bg-white/10" />}
-        <span className="text-[9px] font-mono text-white/40">Live {liveMessages.length > 0 ? liveMessages.length : ""}</span>
+        <span className="text-[9px] font-mono text-white/40">Messages {allMessages.length}</span>
       </button>
     );
   }
@@ -33,19 +46,22 @@ export function PluginPanel() {
         {liveMessages.length > 0
           ? <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
           : <span className="w-1.5 h-1.5 rounded-full bg-white/10" />}
-        <span className="text-[9px] font-mono text-cyan-400/60">Live</span>
+        <span className="text-[9px] font-mono text-cyan-400/60">Messages</span>
+        <span className="text-[8px] font-mono text-white/20 ml-auto">{allMessages.length}</span>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {liveMessages.length > 0 ? (
-          [...liveMessages].reverse().map((m, i) => {
+        {allMessages.length > 0 ? (
+          allMessages.map((m, i) => {
             const age = Math.floor((Date.now() - m.ts) / 1000);
+            const ageStr = age < 60 ? `${age}s` : age < 3600 ? `${Math.floor(age / 60)}m` : `${Math.floor(age / 3600)}h`;
             return (
-              <div key={i} className="flex items-center gap-1.5 px-3 py-0.5 text-[9px] font-mono">
-                <span className="text-cyan-400/60">{clean(m.from)}</span>
+              <div key={i} className={`flex items-center gap-1.5 px-3 py-0.5 text-[9px] font-mono ${m.live ? "" : "opacity-50"}`}
+                title={m.msg || undefined}>
+                <span className="text-cyan-400/60">{m.from}</span>
                 <span className="text-white/20">{"\u2192"}</span>
-                <span className="text-cyan-400/60">{clean(m.to)}</span>
-                <span className="text-white/15 ml-auto">{age < 60 ? `${age}s` : `${Math.floor(age / 60)}m`}</span>
+                <span className="text-cyan-400/60">{m.to}</span>
+                <span className="text-white/15 ml-auto">{ageStr}</span>
               </div>
             );
           })

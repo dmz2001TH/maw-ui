@@ -8,7 +8,7 @@ import type { AgentNode, AgentEdge, Particle } from "../components/federation/ty
 import type { FeedEvent } from "../lib/feed";
 
 export function useFederationData() {
-  const { setGraph, setVersion, setPlugins, handleFeedEvent, handleFeedHistory, handleLiveMessage } = useFederationStore();
+  const { setGraph, setVersion, setPlugins, setMessageLog, handleFeedEvent, handleFeedHistory, handleLiveMessage } = useFederationStore();
 
   const handleMessage = useCallback((data: any) => {
     if (data.type === "feed") {
@@ -67,6 +67,21 @@ export function useFederationData() {
 
       if (identity?.version) setVersion(identity.version);
       if (pluginData?.plugins) setPlugins(pluginData.plugins);
+
+      // Load message history for the live panel
+      if (messages?.messages) {
+        const clean = (s: string) => (s || "").replace(/^.*:/, "").replace(/-oracle$/, "").replace(/-view$/, "");
+        const log = messages.messages
+          .filter((m: any) => m.ch === "hey") // only maw hey messages
+          .map((m: any) => ({
+            from: clean(m.from),
+            to: clean(m.to),
+            msg: (m.msg || "").slice(0, 120),
+            ts: new Date(m.ts).getTime(),
+          }))
+          .reverse(); // newest first
+        setMessageLog(log);
+      }
 
       // Agent -> machine map
       const a2m: Record<string, string> = {};

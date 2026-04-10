@@ -72,7 +72,7 @@ export function Sidebar() {
                 const toColor = isUser ? "#fee440" : machineColor(agentMachine.get(m.to) || "");
                 return (
                   <div key={i}
-                    className={`flex items-center gap-1.5 py-[3px] hover:bg-white/[0.02] rounded transition-colors ${m.live ? "" : "opacity-60"}`}
+                    className={`flex items-center gap-1.5 py-[3px] hover:bg-white/[0.02] rounded transition-colors ${m.live || (Date.now() - m.ts < 300000) ? "" : "opacity-60"}`}
                     title={m.msg || undefined}>
                     <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: m.live ? fromColor : "rgba(255,255,255,0.1)" }} />
                     <span className="text-[9px] font-mono truncate" style={{ color: `${fromColor}99` }}>{m.from}</span>

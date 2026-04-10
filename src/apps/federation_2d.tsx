@@ -4,10 +4,10 @@ import { useFederationData } from "../hooks/useFederationData";
 import { useFederationStore } from "../components/federation/store";
 import { Canvas2D } from "../components/federation/Canvas2D";
 import { Sidebar } from "../components/federation/Sidebar";
-import { simulate, layoutCircle, layoutGrid, layoutTree } from "../components/federation/simulation";
+import { simulate, layoutCircle } from "../components/federation/simulation";
 import { machineColor } from "../components/federation/colors";
 
-const LAYOUTS = ["force", "circle", "grid", "tree"] as const;
+const LAYOUTS = ["force", "circle"] as const;
 
 function App() {
   const { connected, mqttConnected } = useFederationData();
@@ -20,8 +20,6 @@ function App() {
     const H = (window.innerHeight - 52) || 600;
     const a = [...agents];
     if (next === "circle") layoutCircle(a, W, H);
-    else if (next === "grid") layoutGrid(a, W, H);
-    else if (next === "tree") layoutTree(a, edges, W, H);
     else simulate(a, edges, W, H);
     setLayout(next);
     setGraph(a, edges, particles);
@@ -72,7 +70,7 @@ function App() {
         <button onClick={reformat}
           className="absolute bottom-4 left-4 px-3 py-2 rounded-lg border text-[10px] font-mono cursor-pointer hover:bg-white/[0.05] transition-colors"
           style={{ background: "rgba(3,10,24,0.9)", borderColor: "rgba(255,255,255,0.08)", color: "rgba(0,245,212,0.5)" }}>
-          {layout === "force" ? "⚡" : layout === "circle" ? "⭕" : layout === "grid" ? "▦" : "🌳"} {layout}
+          {layout === "force" ? "\u26A1" : "\u2B55"} {layout}
         </button>
         <Sidebar />
       </div>

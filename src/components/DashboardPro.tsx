@@ -158,23 +158,54 @@ function ClockDriftPanel({ fed }: { fed: FedStatus | null }) {
   );
 }
 
-function AgentGridPanel({ sessions }: { sessions: Session[] }) {
+function AgentGridPanel({ sessions, onRefresh }: { sessions: Session[]; onRefresh: () => void }) {
+  const [acting, setActing] = useState<string | null>(null);
   const total = sessions.reduce((n, s) => n + s.windows.length, 0);
+
+  const wakeAgent = async (name: string) => {
+    setActing(name);
+    try {
+      await fetch(apiUrl("/api/wake"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: name }),
+      });
+      setTimeout(onRefresh, 2000);
+    } catch {}
+    setActing(null);
+  };
+
+  const sleepAgent = async (name: string) => {
+    setActing(name);
+    try {
+      await fetch(apiUrl("/api/sleep"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: name }),
+      });
+      setTimeout(onRefresh, 2000);
+    } catch {}
+    setActing(null);
+  };
+
   return (
     <PanelShell title="Agents" subtitle={`${total} across ${sessions.length} sessions`}>
       <div className="flex flex-wrap gap-1">
         {sessions.flatMap((s) =>
           s.windows.map((w) => (
-            <span
+            <button
               key={`${s.name}-${w.name}`}
-              className="px-1.5 py-0.5 rounded text-[10px] font-mono"
+              className="px-1.5 py-0.5 rounded text-[10px] font-mono cursor-pointer hover:ring-1 hover:ring-white/20 transition-all"
               style={{
                 backgroundColor: w.active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)",
-                color: w.active ? "#22c55e" : "rgba(255,255,255,0.3)",
+                color: acting === w.name ? "#f59e0b" : w.active ? "#22c55e" : "rgba(255,255,255,0.3)",
               }}
+              title={w.active ? `Click to sleep ${w.name}` : `Click to wake ${w.name}`}
+              onClick={() => w.active ? sleepAgent(w.name) : wakeAgent(w.name)}
+              disabled={acting !== null}
             >
-              {w.name.replace(/-oracle$/, "")}
-            </span>
+              {acting === w.name ? "..." : w.name.replace(/-oracle$/, "")}
+            </button>
           )),
         )}
       </div>
@@ -292,7 +323,7 @@ export default function DashboardPro() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <PeerHealthPanel fed={fed} />
         <ClockDriftPanel fed={fed} />
-        <AgentGridPanel sessions={sessions} />
+        <AgentGridPanel sessions={sessions} onRefresh={refresh} />
         <PluginPanel plugins={plugins} />
       </div>
 

@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useCallback, useRef } from "react";
 import Editor from "@monaco-editor/react";
-import { apiUrl, getStoredHost, setStoredHost, clearStoredHost, getRecentHosts, activeHost, hostSource } from "../lib/api";
+import { apiUrl, getStoredHost, setStoredHost, clearStoredHost, getRecentHosts, activeHost } from "../lib/api";
 
 function ConnectionSettings() {
   const [host, setHost] = useState(() => getStoredHost() || "");
@@ -64,7 +64,7 @@ function ConnectionSettings() {
   }, []);
 
   const currentDisplay = activeHost
-    ? `${activeHost} (${hostSource})`
+    ? activeHost
     : "local (same-origin)";
 
   return (

@@ -31,14 +31,24 @@ const RECENT_KEY = "maw-host-recent";
 
 const params = new URLSearchParams(window.location.search);
 const urlHost = params.get("host");
-const hostParam = urlHost ?? localStorage.getItem(STORAGE_KEY);
+
+// Auto-persist: ?host= in URL → save to localStorage → redirect clean
+if (urlHost) {
+  localStorage.setItem(STORAGE_KEY, urlHost);
+  addRecentHost(urlHost);
+  const url = new URL(window.location.href);
+  url.searchParams.delete("host");
+  window.location.replace(url.toString());
+}
+
+const hostParam = localStorage.getItem(STORAGE_KEY);
 
 /** Whether we're running in remote mode */
 export const isRemote = !!hostParam;
 
-/** Where the active host came from */
-export const hostSource: "url" | "config" | "local" =
-  urlHost ? "url" : localStorage.getItem(STORAGE_KEY) ? "config" : "local";
+/** Where the active host came from (always "config" or "local" after redirect) */
+export const hostSource: "config" | "local" =
+  localStorage.getItem(STORAGE_KEY) ? "config" : "local";
 
 /** Raw active host value (from URL or config) */
 export const activeHost: string | null = hostParam;

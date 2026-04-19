@@ -37,6 +37,7 @@ export default defineConfig({
         timemachine: resolve(__dirname, "timemachine.html"),
         shrine: resolve(__dirname, "shrine.html"),
         workspace: resolve(__dirname, "workspace.html"),
+        bridge: resolve(__dirname, "bridge.html"),
       },
     },
   },

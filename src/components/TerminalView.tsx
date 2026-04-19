@@ -2,6 +2,8 @@ import { memo, useState, useEffect, useRef, useCallback } from "react";
 import { ansiToHtml } from "../lib/ansi";
 import { roomStyle } from "../lib/constants";
 import { wsUrl } from "../lib/api";
+import { useImageUpload } from "../hooks/useImageUpload";
+import { useVoiceInput } from "../hooks/useVoiceInput";
 import type { Session, AgentState } from "../lib/types";
 
 interface TerminalViewProps {
@@ -20,6 +22,26 @@ export const TerminalView = memo(function TerminalView({ sessions, agents, conne
   const outputRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<HTMLDivElement>(null);
   const sendingRef = useRef(false);
+
+  // Image upload hook
+  const {
+    uploading: imgUploading,
+    pending: pendingImages,
+    error: imgError,
+    inputRef: fileInputRef,
+    upload,
+    pickFile,
+    onFileChange,
+    removeImage,
+    clearAll: clearImages,
+    buildMessage,
+  } = useImageUpload();
+
+  // Voice input hook — appends transcript to input buffer
+  const handleVoiceTranscript = useCallback((text: string) => {
+    setInputBuf(prev => prev ? prev + " " + text : text);
+  }, []);
+  const { listening, supported: voiceSupported, toggle: toggleVoice } = useVoiceInput(handleVoiceTranscript);
 
   // Own WebSocket for capture stream (separate from main fleet WS)
   useEffect(() => {
@@ -69,8 +91,9 @@ export const TerminalView = memo(function TerminalView({ sessions, agents, conne
     setCaptureHtml("");
     setInputBuf("");
     setSendQueue([]);
+    clearImages();
     termRef.current?.focus();
-  }, []);
+  }, [clearImages]);
 
   // Flush send queue
   useEffect(() => {
@@ -88,16 +111,35 @@ export const TerminalView = memo(function TerminalView({ sessions, agents, conne
   }, [sendQueue, selectedTarget]);
 
   const queueSend = useCallback((text: string) => {
-    if (!text || !selectedTarget) return;
-    setSendQueue(q => [...q, text]);
-  }, [selectedTarget]);
+    if (!selectedTarget) return;
+    const fullMessage = buildMessage(text);
+    if (!fullMessage) return;
+    clearImages();
+    setSendQueue(q => [...q, fullMessage]);
+  }, [selectedTarget, buildMessage, clearImages]);
 
   // Paste handler — fires on right-click paste or Ctrl+Shift+V
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     e.preventDefault();
-    const text = e.clipboardData.getData("text");
-    if (text) setInputBuf(b => b + text);
-  }, []);
+    // Check for images in clipboard
+    const items = e.clipboardData.items;
+    let hasFile = false;
+    for (const item of Array.from(items)) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        hasFile = true;
+        const file = item.getAsFile();
+        if (file) {
+          const name = `clipboard-${Date.now()}.${item.type.split("/")[1] || "png"}`;
+          upload(new File([file], name, { type: item.type }));
+        }
+      }
+    }
+    // Also paste text if no image was found
+    if (!hasFile) {
+      const text = e.clipboardData.getData("text");
+      if (text) setInputBuf(b => b + text);
+    }
+  }, [upload]);
 
   // Keyboard handler
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -122,8 +164,13 @@ export const TerminalView = memo(function TerminalView({ sessions, agents, conne
         // Shift+Enter → newline in buffer
         setInputBuf(b => b + "\n");
       } else {
-        // Enter → send
-        if (inputBuf) { queueSend(inputBuf); setInputBuf(""); }
+        // Enter → send (including any attached images)
+        const fullMessage = buildMessage(inputBuf);
+        if (fullMessage) {
+          clearImages();
+          setSendQueue(q => [...q, fullMessage]);
+          setInputBuf("");
+        }
       }
     } else if (e.key === "Backspace") {
       e.preventDefault();
@@ -131,10 +178,10 @@ export const TerminalView = memo(function TerminalView({ sessions, agents, conne
       else setInputBuf(b => b.slice(0, -1));
     } else if (e.key === "Escape") {
       e.preventDefault();
-      setInputBuf(""); setSendQueue([]);
+      setInputBuf(""); setSendQueue([]); clearImages();
     } else if (e.key === "c" && e.ctrlKey) {
       e.preventDefault();
-      setInputBuf(""); setSendQueue([]);
+      setInputBuf(""); setSendQueue([]); clearImages();
     } else if ((e.key === "v" && e.ctrlKey) || (e.key === "v" && e.metaKey)) {
       // Ctrl+V / Cmd+V → paste from clipboard
       e.preventDefault();
@@ -149,7 +196,7 @@ export const TerminalView = memo(function TerminalView({ sessions, agents, conne
       e.preventDefault();
       setInputBuf(b => b + e.key);
     }
-  }, [selectedTarget, inputBuf, queueSend, selectWindow, sessions]);
+  }, [selectedTarget, inputBuf, queueSend, selectWindow, sessions, buildMessage, clearImages]);
 
   // Get display name for selected target
   const selectedName = selectedTarget
@@ -217,6 +264,15 @@ export const TerminalView = memo(function TerminalView({ sessions, agents, conne
           </span>
         </div>
 
+      {/* Hidden file input for image attachment */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={onFileChange}
+        className="hidden"
+      />
+
         {/* Output */}
         <div
           ref={outputRef}
@@ -232,11 +288,53 @@ export const TerminalView = memo(function TerminalView({ sessions, agents, conne
           )}
         </div>
 
+        {/* Image attachment preview row */}
+        {(pendingImages.length > 0 || imgUploading) && (
+          <div className="flex items-center gap-1.5 px-3 py-1 border-t border-white/[0.04]" style={{ background: "#0a0a12" }}>
+            {pendingImages.map((img) => (
+              <div key={img.filename} className="relative group flex-shrink-0">
+                <img
+                  src={img.url}
+                  alt={img.filename}
+                  className="w-8 h-8 rounded border border-white/10 object-cover"
+                />
+                <button
+                  onClick={() => removeImage(img.filename)}
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500/80 text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer leading-none"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            {imgUploading && (
+              <div className="w-8 h-8 rounded border border-cyan-400/20 flex items-center justify-center">
+                <span className="text-[10px] text-cyan-400/60 animate-pulse">...</span>
+              </div>
+            )}
+            {imgError && (
+              <span className="text-[10px] text-red-400/70 ml-1">{imgError}</span>
+            )}
+            <span className="text-[10px] text-white/20 ml-1">
+              {pendingImages.length === 1 ? "image will be sent" : `${pendingImages.length} images will be sent`}
+            </span>
+          </div>
+        )}
+
         {/* Input line */}
         <div
           className="flex items-start px-3 py-1.5 border-t border-white/[0.06] font-mono text-[13px] min-h-[32px]"
           style={{ background: "#0d0d14" }}
         >
+          {/* 📎 Image attachment button */}
+          <button
+            onClick={pickFile}
+            disabled={!selectedTarget}
+            className="text-white/30 hover:text-cyan-400 mr-1.5 mt-[1px] flex-shrink-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 transition-colors"
+            title="Attach image"
+          >
+            📎
+          </button>
+
           <span className="text-white/30 mr-2 mt-[1px] flex-shrink-0">&gt;</span>
           <span className="text-white/90 whitespace-pre flex-1">{inputBuf}</span>
           <span
@@ -246,10 +344,25 @@ export const TerminalView = memo(function TerminalView({ sessions, agents, conne
           {sendQueue.length > 0 && (
             <span className="text-white/30 text-[11px] ml-2">({sendQueue.length} queued)</span>
           )}
-          {(inputBuf || sendQueue.length > 0) && (
+
+          {/* 🎤 Voice input button */}
+          {voiceSupported && (
+            <button
+              onClick={toggleVoice}
+              disabled={!selectedTarget}
+              className={`ml-2 flex-shrink-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 transition-colors text-[14px] ${
+                listening ? "text-red-400 animate-pulse" : "text-white/30 hover:text-cyan-400"
+              }`}
+              title={listening ? "Stop listening" : "Voice input (Thai/English)"}
+            >
+              {listening ? "🔴" : "🎤"}
+            </button>
+          )}
+
+          {(inputBuf || sendQueue.length > 0 || pendingImages.length > 0) && (
             <span
               className="ml-auto text-white/30 text-[11px] cursor-pointer hover:text-red-400 px-2 rounded"
-              onClick={() => { setInputBuf(""); setSendQueue([]); }}
+              onClick={() => { setInputBuf(""); setSendQueue([]); clearImages(); }}
             >
               esc
             </span>

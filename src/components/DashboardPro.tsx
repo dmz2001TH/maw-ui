@@ -197,7 +197,7 @@ function AgentGridPanel({ sessions, onRefresh }: { sessions: Session[]; onRefres
       <div className="flex flex-wrap gap-1">
         {sessions.flatMap((s) =>
           s.windows.map((w) => (
-            {READONLY ? (
+            READONLY ? (
               <span
                 key={`${s.name}-${w.name}`}
                 className="px-1.5 py-0.5 rounded text-[10px] font-mono"
@@ -222,7 +222,7 @@ function AgentGridPanel({ sessions, onRefresh }: { sessions: Session[]; onRefres
               >
                 {acting === w.name ? "..." : w.name.replace(/-oracle$/, "")}
               </button>
-            )}
+            )
           )),
         )}
       </div>
